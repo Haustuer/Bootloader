@@ -1,12 +1,11 @@
 #include <Arduino.h>
 #include <ElegantOTA.h>
 unsigned long ota_progress_millis = 0;
-ESP8266WebServer server(80);
 
 #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 WiFiManager wm;
 #include "WebPage.h"
-// OTA
+ESP8266WebServer otaServer(8080);
 void onOTAStart()
 {
   Serial.println("OTA update started!");
@@ -25,35 +24,65 @@ void onOTAProgress(size_t current, size_t final)
 void onOTAEnd(bool success)
 {
   // Log when OTA has finished
-  if (success)  {Serial.println("OTA update finished successfully!"); }
-  else {   Serial.println("There was an error during OTA update!");  } 
+  if (success)
+  {
+    Serial.println("OTA update finished successfully!");
+  }
+  else
+  {
+    Serial.println("There was an error during OTA update!");
+  }
 }
 
-void setup() {
+void handleSetupRoute()
+{
+  // Replace <your_esp_ip> with the actual IP address of the ESP8266
+  String page = FPSTR(MAIN_page);                           // Copy HTML from Flash memory to RAM
+  page.replace("<your_esp_ip>", WiFi.localIP().toString()); // Replace the IP placeholder
+  wm.server->send(200, "text/html", page);                  // Send modified page to client
+}
+
+void bindServerCallback()
+{
+  wm.server->on("/", handleSetupRoute); // overwrite/replace existing/default route
+}
+void setup()
+{
+  WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+  // put your setup code here, to run once:
   Serial.begin(115200);
-  bool res;
-  res = wm.autoConnect("AutoConnectAP"); // anonymous ap
-  if(!res) {
-      Serial.println("Failed to connect");     
-  } 
-  else {   
-      Serial.println("connected...yeey :)");
+  wm.setConfigPortalBlocking(false);
+  // wm.setConfigPortalTimeout(60);
+  wm.setWebServerCallback(bindServerCallback);
+  // automatically connect using saved credentials if they exist
+  // If connection fails it starts an access point with the specified name
+  if (wm.autoConnect("AutoConnectAP"))
+  {
+    Serial.println("connected...yeey :)");
   }
-  Serial.println();
-  Serial.println("Connected to the network");
-  Serial.println(WiFi.localIP());
-  ElegantOTA.begin(&server); 
+  else
+  {
+    Serial.println("Configportal running");
+  }
+
+  ElegantOTA.begin(&otaServer);
   ElegantOTA.onStart(onOTAStart);
   ElegantOTA.onProgress(onOTAProgress);
   ElegantOTA.onEnd(onOTAEnd);
-
-  server.on("/", []()
-  { server.send(200, "text/html", MAIN_page); });
-  server.begin();
+  otaServer.begin();
 }
+bool portalRunning = false;
 
-void loop() {
-    // OTA Loop
-    server.handleClient();
-    ElegantOTA.loop();
+void loop()
+{
+  otaServer.handleClient();
+  ElegantOTA.loop();
+  wm.process();
+  if (!portalRunning)
+  {
+    Serial.println("Button Pressed, Starting Portal");
+    wm.startWebPortal();
+    portalRunning = true;
+  }
+  // put your main code here, to run repeatedly:
 }
