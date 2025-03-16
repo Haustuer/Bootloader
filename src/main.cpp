@@ -1,25 +1,25 @@
 #include <Arduino.h>
-#include <WiFiManager.h> 
+#include <WiFiManager.h>
 WiFiManager wm;
 #include "WebPage.h"
 
-void handleSetupRoute()
-{  
-  wm.server->send(200, "text/html", MAIN_page);      
-}   
+void showMainPage()
+{
+  wm.server->send(200, "text/html", MAIN_page);
+}
 
 void bindServerCallback()
 {
-//  wm.server->on("/", handleSetupRoute); 
-  wm.server->on("/index.html", handleSetupRoute);
+  //  wm.server->on("/", handleSetupRoute);
+  wm.server->on("/index.html", showMainPage);
 }
-void setup()
+
+void setupWM()
 {
-  WiFi.mode(WIFI_STA); 
+  WiFi.mode(WIFI_STA);
   Serial.begin(115200);
-  wm.setConfigPortalBlocking(false);
-  // wm.setConfigPortalTimeout(60);
-  wm.setWebServerCallback(bindServerCallback); 
+  wm.setConfigPortalBlocking(false);  
+  wm.setWebServerCallback(bindServerCallback);
   if (wm.autoConnect("AutoConnectAP"))
   {
     Serial.println("[WM] connected...yeey :)");
@@ -27,17 +27,25 @@ void setup()
   else
   {
     Serial.println("[WM] Configportal running");
-  } 
-  
+  }
 }
-void loop()
-{  
+
+void loopWM()
+{
   wm.process();
   if (!wm.getWebPortalActive())
   {
     Serial.println("[WM] Web Portal restart");
-    wm.startWebPortal();    
+    wm.startWebPortal();
   }
+}
 
+void setup()
+{
+  setupWM();
+}
 
+void loop()
+{
+  loopWM();
 }
