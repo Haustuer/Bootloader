@@ -22,23 +22,22 @@ void setup()
   wm.setWebServerCallback(bindServerCallback); 
   if (wm.autoConnect("AutoConnectAP"))
   {
-    Serial.println("connected...yeey :)");
+    Serial.println("[WM] connected...yeey :)");
   }
   else
   {
-    Serial.println("Configportal running");
+    Serial.println("[WM] Configportal running");
   } 
   
 }
-bool portalRunning = false;
-
 void loop()
-{ 
+{  
   wm.process();
-  if (!portalRunning)
+  if (!wm.getWebPortalActive())
   {
-    Serial.println("Button Pressed, Starting Portal");
-    wm.startWebPortal();
-    portalRunning = true;
+    Serial.println("[WM] Web Portal restart");
+    wm.startWebPortal();    
   }
+
+
 }
